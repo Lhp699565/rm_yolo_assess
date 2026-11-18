@@ -30,6 +30,8 @@ def main() -> None:
     ap.add_argument("--device", default="auto")
     ap.add_argument("--conf", type=float, default=0.001, help="评估阈值，一般保持默认")
     ap.add_argument("--iou", type=float, default=0.7)
+    ap.add_argument("--workers", type=int, default=0,
+                    help="数据加载进程数。受限环境（沙箱）里必须为 0，否则 CreateFile 命名管道被拒")
     ap.add_argument("--name", default=None)
     args = ap.parse_args()
 
@@ -58,6 +60,7 @@ def main() -> None:
         device=device,
         conf=args.conf,
         iou=args.iou,
+        workers=args.workers,
         project=str(ROOT / "runs" / "val"),
         name=name,
         plots=True,
