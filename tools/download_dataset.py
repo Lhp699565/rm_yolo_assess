@@ -34,8 +34,62 @@ def hr(title: str) -> None:
 
 
 def run(cmd: list[str]) -> int:
+    """跑子进程，实时打印输出，同时留最后 30 行 —— 失败时把真正的报错甩到最下面。"""
+    from collections import deque
+
     print("  $ " + " ".join(str(c) for c in cmd) + "\n", flush=True)
-    return subprocess.call([str(c) for c in cmd])
+    tail: deque[str] = deque(maxlen=30)
+    proc = subprocess.Popen(
+        [str(c) for c in cmd],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        bufsize=1,
+    )
+    assert proc.stdout is not None
+    for line in proc.stdout:
+        print(line, end="", flush=True)
+        tail.append(line.rstrip())
+    proc.wait()
+
+    if proc.returncode != 0:
+        print("\n" + "-" * 62)
+        print(f"  子进程退出码 {proc.returncode}，最后几行输出：")
+        print("-" * 62)
+        for line in tail:
+            if line.strip():
+                print("  " + line)
+        print("-" * 62)
+    return proc.returncode
+
+
+def ensure_writable_dir(dest: Path) -> None:
+    """提前创建并试写目标目录，权限问题在这里就说清楚，别等下载到一半才炸。"""
+    try:
+        dest.mkdir(parents=True, exist_ok=True)
+        probe = dest / ".write_probe"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink()
+    except PermissionError:
+        drive = dest.drive or "?"
+        print("\n" + "!" * 62)
+        print(f"  没有权限在 {dest} 创建/写入文件夹")
+        print("!" * 62)
+        print(f"\n  原因：当前账号（非管理员）不能直接在 {drive} 盘根目录新建文件夹。")
+        print("\n  两个解决办法，任选其一：\n")
+        print(f"  【办法 A】手动把上一级文件夹建出来（推荐，只需建一层）")
+        print(f"    1. 打开「此电脑」→ 进入 {drive} 盘")
+        print(f"    2. 右键 → 新建 → 文件夹，命名 {dest.parent.name}")
+        print(f"    3. 如果弹出「需要管理员权限」，点「继续」")
+        print(f"    4. 再双击本脚本；里面的 {dest.name} 它会自己建\n")
+        print(f"  【办法 B】换一个你肯定能写的目录（比如 C 盘的用户目录）")
+        print(f"    打开 shell.cmd，运行：")
+        print(f"      python tools\\download_dataset.py --dest C:\\Users\\{Path.home().name}\\rm_datasets\\armor-pose")
+        print(f"    C 盘当前剩余 95 GB 左右，够用。\n")
+        print("!" * 62)
+        sys.exit(2)
 
 
 def main() -> None:
@@ -77,6 +131,8 @@ def main() -> None:
     if args.dry_run:
         print("\n[dry-run] 计划确认无误，退出（未下载）")
         return
+
+    ensure_writable_dir(dest)
 
     # ---------- 1. 下载 ----------
     hr("1/3  下载数据集（可中断，重跑会续传）")
