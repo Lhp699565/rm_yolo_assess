@@ -23,9 +23,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATASET_ID = "P1ne4pp1e/armor-pose-blender-allcls-5k-1109"
 
-# 默认下载到用户目录下的 rm_datasets，这个位置一定有写权限。
-# 想放 D 盘就双击时加参数：--dest D:\rm_datasets\armor-pose
-DEFAULT_DEST = Path.home() / "rm_datasets" / "armor-pose"
+# 默认下载到项目内的 raw/source。
+# 为什么不用 C:\Users\.. 或 D:\ ：受限环境（沙箱）只能写工作区，
+# 放在项目里则两边都能写，谁跑都行。raw/ 已经在 .gitignore 里，不会进版本库。
+DEFAULT_DEST = ROOT / "raw" / "source"
 
 OUT_DIR = "datasets/armor"
 RENAME = "2=armor_2,3=armor_3,4=armor_4"
