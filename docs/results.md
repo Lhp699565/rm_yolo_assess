@@ -6,6 +6,40 @@
 
 ---
 
+## 数据集
+
+| 项 | 值 |
+|---|---|
+| 来源 | 魔搭 `P1ne4pp1e/armor-pose-blender-allcls-5k-1109`（Apache 2.0） |
+| 内容 | Blender 渲染的 RM26 装甲板，1440×1080 PNG |
+| 规模 | 5000 张 / 18355 个框 / 1140 张空标签背景图 |
+| 划分 | train 4000 / val 500 / test 500（沿用数据集自带划分，未随机重分） |
+| 类别 | 6 类，每类约 3000 个实例（完全均衡） |
+
+| id | 类别名 | 原始名 | 含义 | 实例数 |
+|---|---|---|---|---|
+| 0 | armor_2 | `2` | 装甲板编号 2 | 3098 |
+| 1 | armor_3 | `3` | 装甲板编号 3 | 3005 |
+| 2 | armor_4 | `4` | 装甲板编号 4 | 3117 |
+| 3 | sentry | `sentry` | 哨兵 | 3060 |
+| 4 | outpost | `outpost` | 前哨站 | 2998 |
+| 5 | base | `base` | 基地 | 3077 |
+
+原始标签是 YOLO Pose（每行 17 列），用 `tools/import_pose.py` 取前 5 列转成检测框，
+丢掉 12 列关键点。**保留原划分**是因为渲染数据同一场景会出多个视角，随机重分会泄漏。
+
+## 环境
+
+| 项 | 值 |
+|---|---|
+| GPU | NVIDIA RTX 5060 Laptop（8 GB，sm_120 / Blackwell） |
+| 系统 | Windows |
+| torch | 2.11.0+cu128 |
+| ultralytics | 8.4.215 |
+| 注意 | RTX 50 系必须 cu128 及以上，cu118 会报 `no kernel image is available` |
+
+---
+
 ## 主表
 
 | # | 日期 | commit | 模型 | imgsz | epochs | 数据量 | mAP@0.5 | mAP@0.5:0.95 | P | R | 改了什么 / 结论 |

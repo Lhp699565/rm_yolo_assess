@@ -154,7 +154,8 @@ def main() -> None:
            "--repo-type", "dataset",
            "--cache-dir", str(cache),
            "--local-dir", str(dest),
-           "--max-workers", str(args.workers)]
+           "--max-workers", str(args.workers),
+           "--continue-on-error"]
     if not args.full:
         cmd += ["--include", *need]
         print("  只下载 images / labels / 划分文件（跳过可视化附加目录，省一半空间）")
@@ -163,10 +164,18 @@ def main() -> None:
 
     code = run(cmd)
     if code != 0:
-        print(f"\n[error] 下载失败（退出码 {code}）")
-        print("  常见原因：网络中断、D 盘满了、镜像超时")
-        print("  直接重新双击本文件即可续传")
-        sys.exit(code)
+        # 网络抖动经常导致个别文件失败，但已完成的都在。
+        # 只要主体到齐了就继续导入，缺的图会被自动跳过，别为了几十张功亏一篑。
+        got = len(list((dest / "images").glob("*"))) if (dest / "images").is_dir() else 0
+        print(f"\n[warn] 下载返回 {code}，已拿到 {got} 张图")
+        if got >= 4000:
+            print("[warn] 主体已到齐，继续导入（缺的图会自动跳过）")
+            print("[warn] 想要补齐就把本脚本再跑一次，只重试失败的文件\n")
+        else:
+            print(f"\n[error] 下载失败（退出码 {code}），只拿到 {got} 张")
+            print("  常见原因：网络中断、DNS 解析失败、镜像超时")
+            print("  直接重新双击本文件即可续传")
+            sys.exit(code)
 
     # ---------- 2. 导入 ----------
     hr("2/3  转成纯检测格式并导入")
