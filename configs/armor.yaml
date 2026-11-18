@@ -1,0 +1,22 @@
+# ============================================================
+# 自定义类别数据集配置（考核核心：检测 YOLO 80 类之外的物体）
+#
+# !!! 路径坑 !!!
+# ultralytics 解析相对 path 时，基准是「本 yaml 文件所在目录」，
+# 不是仓库根目录、也不是运行时 cwd。
+# 本文件在 configs/ 下，所以写 ../datasets/armor 才对。
+# 写成 datasets/armor 会去找 configs/datasets/armor 然后报 Dataset not found。
+# ============================================================
+
+path: ../datasets/armor
+
+train: images/train
+val: images/val
+test: images/test
+
+# 类别数必须和 names 的条目数一致，标签里的 class_id 必须落在 0..nc-1
+nc: 2
+
+names:
+  0: blue_armor
+  1: red_armor

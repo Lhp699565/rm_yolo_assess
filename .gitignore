@@ -1,0 +1,39 @@
+# ---- 虚拟环境 / 本地缓存 ----
+.venv/
+venv/
+.tmp/
+.tmp2/
+.pip-cache/
+.wheels/
+wheels/
+.devtools/
+__pycache__/
+*.py[cod]
+
+# ---- 数据集：体积大，不进版本库（用 README 里的网盘链接交接）----
+datasets/
+raw/
+!datasets/.gitkeep
+
+# ---- 训练产物：只把精选图放进 docs/figures ----
+runs/
+weights/
+
+# ---- 权重与导出模型：大文件，不进库（需要时用 Git LFS）----
+*.pt
+*.pth
+*.onnx
+*.engine
+*.xml
+*.bin
+
+# ---- 允许提交文档用的小图 ----
+!docs/figures/*.png
+!docs/figures/*.jpg
+
+# ---- 系统 / 编辑器 ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
