@@ -57,8 +57,9 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 
 # 2) 先装 torch（一定要先装，否则 ultralytics 会顺手拉一个 CPU 版）
-pip install torch==2.9.1+cu128 torchvision==0.24.1+cu128 `
-    -f https://mirrors.aliyun.com/pytorch-wheels/cu128/ `
+#    镜像按自己网络选：上海交大 / 阿里云；版本号不存在就去掉 == 后面的部分
+pip install torch torchvision `
+    -f https://mirror.sjtu.edu.cn/pytorch-wheels/cu128/ `
     -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 3) 再装其余依赖
@@ -67,6 +68,10 @@ pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 # 4) 自检
 python -c "import torch;print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
 ```
+
+> 2.8 GB 的 CUDA 包在国内镜像上经常被限速到几百 KB/s。实测可用：
+> 上海交大 `mirror.sjtu.edu.cn/pytorch-wheels/cu128/`（多线程能到 4 MB/s）、
+> 阿里云 `mirrors.aliyun.com/pytorch-wheels/cu128/`（单线程约 0.3 MB/s，慢但不限量）。
 
 ### 3.2 没有独显 / 只有核显
 
@@ -92,6 +97,52 @@ pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 没有显示器时跑 `detect.py` 记得加 `--no-show`，否则 `cv2.imshow` 会崩。
+
+### 3.4 两台机器怎么配合（本项目的实际工作方式）
+
+```
+┌─────────────────────────────┐        ┌──────────────────────────────┐
+│  A 机：Windows + RTX 5060    │        │  B 机：Ubuntu（虚拟机里）      │
+│  ─────────────────────────  │        │  ───────────────────────────  │
+│  · 标注（labelImg）          │        │  · Linux 命令 / 环境练习       │
+│  · 训练（CUDA，快）          │  git   │  · 跑 detect.py 验证跨平台     │
+│  · 调参 / 对比实验           │ ─────► │  · OpenCV C++ 编译与调试       │
+│  · 导出 ONNX                 │  网盘  │  · 以后接 ROS / 上车代码       │
+└─────────────────────────────┘        └──────────────────────────────┘
+```
+
+**为什么这么分**：虚拟机没有 GPU 直通，在里面训练会慢到不可用；但队伍最终跑在
+Linux 上，所以 Linux 侧的验证必须在 B 机做，不能只在 Windows 上"应该没问题"。
+
+交接规则：
+
+| 传什么 | 怎么传 | 注意 |
+|---|---|---|
+| 代码 / 配置 / 文档 | `git push` | B 机 `git pull` 即可，版本树天然同步 |
+| 数据集（几百 MB） | 网盘 / 局域网上传 | **不要进 git** |
+| 权重 `best.pt`（6 MB） | 网盘，或 Git LFS | 同上 |
+| 导出模型 `best.onnx` | 随权重一起 | B 机用来做 OpenCV DNN 验证 |
+| 实验结果 | 写进 `docs/results.md` 一起提交 | 两台机器看到同一份结论 |
+
+A→B 的具体流程：
+
+```bash
+# A 机：训练完，导出
+python export.py --weights runs/train/exp_xxx/weights/best.pt
+git add -A && git commit -m "feat(train): v1.0 模型 mAP50=0.8x" && git push
+
+# B 机：拉代码 + 接权重，验证 Linux 侧能跑
+git pull
+python detect.py --weights weights/best.pt --source test.jpg --no-show
+```
+
+跨机器最容易翻车的几件事：
+
+1. **路径分隔符**——代码里一律用 `pathlib.Path`，别手拼 `"a\\b"`；
+2. **文件名不要用中文**——Ubuntu 的 OpenCV 读中文路径会静默失败（`imread` 返回 `None`）；
+3. **无显示器**——B 机加 `--no-show`，否则 `cv2.imshow` 直接崩；
+4. **torch 版本要对齐**——两台机器写同一个版本号，不然权重加载报 key 不匹配；
+5. **显存不够时**——A 机 `--batch` 从 16 降到 8 或 4，B 机纯 CPU 就别训练了，只推理。
 
 ---
 
@@ -268,7 +319,7 @@ git log --graph --oneline --all --decorate
 
 | 现象 | 原因 | 解法 |
 |---|---|---|
-| `Dataset not found` | `data.yaml` 里相对 `path` 是以 **yaml 所在目录** 为基准 | `configs/` 下的 yaml 写 `../datasets/armor` |
+| `Dataset not found` / images not found | ultralytics 解析相对 `path` 以**运行时工作目录**为基准，不是 yaml 所在目录 | `train.py`/`val.py` 已自动把相对路径按仓库根目录转成绝对路径；直接用 `yolo` 命令行时才必须在仓库根目录执行 |
 | `no kernel image is available` | RTX 50 系用了 cu118 的 torch | 换 cu128：见 3.1 |
 | 训练 mAP 一直是 0 | 标签坐标是像素没归一化 | `prepare.py check` 会直接报出来 |
 | 下载权重超时 | github.com 被墙 | `python tools/get_weights.py yolov8n.pt` 走镜像 |

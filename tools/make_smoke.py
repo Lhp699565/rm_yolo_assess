@@ -82,10 +82,15 @@ def main() -> None:
             (lbl_dir / f"{name}.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
             total_boxes += len(boxes)
 
+    try:
+        path_val = out.resolve().relative_to(ROOT).as_posix()
+    except ValueError:
+        path_val = out.resolve().as_posix()
+
     yaml_path = out / "smoke.yaml"
     yaml_path.write_text(
         "# 合成数据集，仅用于验证流水线\n"
-        "path: .\n"
+        f"path: {path_val}\n"
         "train: images/train\n"
         "val: images/val\n"
         "nc: 2\n"

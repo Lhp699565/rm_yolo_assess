@@ -60,8 +60,16 @@ def download(name: str, out_dir: Path = WEIGHTS_DIR, tag: str = TAG, timeout: in
                         if total:
                             print(f"\r        {got / 1e6:6.1f} / {total / 1e6:6.1f} MB", end="", flush=True)
             print()
-            if tmp.stat().st_size < 1_000_000:
-                raise OSError(f"下载文件过小：{tmp.stat().st_size} bytes")
+            # 校验：长度必须与 Content-Length 一致，且是 zip 魔数（.pt 本质是 zip）
+            # 只判 "> 1MB" 不够 —— 镜像断流时会给一个截断文件，照样超过 1MB
+            size = tmp.stat().st_size
+            if total and size != total:
+                raise OSError(f"下载不完整：{size} / {total} bytes")
+            if size < 1_000_000:
+                raise OSError(f"下载文件过小：{size} bytes")
+            with open(tmp, "rb") as fh:
+                if fh.read(4) != b"PK\x03\x04":
+                    raise OSError("文件头不是 zip，镜像大概返回了错误页")
             tmp.replace(out)
             print(f"[ ok ] {out}")
             return out

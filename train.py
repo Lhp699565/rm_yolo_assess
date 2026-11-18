@@ -37,10 +37,36 @@ sys.path.insert(0, str(ROOT / "tools"))
 # ----------------------------------------------------------------------------- 工具
 
 
+def find_git() -> str | None:
+    """找 git 可执行文件。PATH 里没有时，兜底找 GitHub Desktop / 常见安装位置。
+
+    很多人是用 GitHub Desktop 传代码的，它的 git 不在 PATH 上，
+    这里兜一下，免得 summary.json 里 commit 永远是 unknown。
+    """
+    exe = shutil.which("git")
+    if exe:
+        return exe
+
+    import glob
+    import os
+
+    candidates = [
+        os.path.expandvars(r"%LOCALAPPDATA%\GitHubDesktop\app-*\resources\app\git\cmd\git.exe"),
+        os.path.expandvars(r"%ProgramFiles%\Git\cmd\git.exe"),
+        os.path.expandvars(r"%ProgramFiles(x86)%\Git\cmd\git.exe"),
+        os.path.expandvars(r"%LOCALAPPDATA%\Programs\Git\cmd\git.exe"),
+    ]
+    for pattern in candidates:
+        for hit in sorted(glob.glob(pattern), reverse=True):
+            if Path(hit).exists():
+                return hit
+    return None
+
+
 def git_info() -> dict:
     """记录本次实验对应的代码版本 —— 版本管理树的一部分。"""
     info = {"commit": "unknown", "branch": "unknown", "dirty": None}
-    exe = shutil.which("git")
+    exe = find_git()
     if not exe:
         return info
     try:
@@ -69,6 +95,40 @@ def resolve_model(model: str) -> str:
     from get_weights import download
 
     return str(download(p.name))
+
+
+def prepare_data_config(data_arg: str) -> Path:
+    """把 data.yaml 里的相对 path 解析成绝对路径，另存一份给 ultralytics。
+
+    原因：ultralytics 解析相对 `path` 时以【运行时工作目录】为基准，
+    换个目录执行就找不到数据集。这里统一按仓库根目录解析，
+    不管你在哪个目录敲命令，结果都一样。
+    """
+    import yaml
+
+    p = Path(data_arg)
+    if not p.is_absolute():
+        p = (ROOT / p).resolve()
+    if not p.exists():
+        raise SystemExit(f"找不到数据集配置：{p}")
+
+    cfg = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    root = Path(cfg.get("path") or ".")
+    if not root.is_absolute():
+        root = (ROOT / root).resolve()
+    cfg["path"] = str(root)
+
+    out = ROOT / "runs" / "_cfg" / p.name
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(yaml.safe_dump(cfg, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return out
+
+
+def count_images(folder) -> int:
+    p = Path(folder)
+    if not p.exists():
+        return 0
+    return sum(1 for f in p.rglob("*") if f.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp", ".webp"})
 
 
 def summarize_run(save_dir: Path) -> dict:
@@ -134,22 +194,28 @@ def main() -> None:
     print(f"model      : {args.model}")
     print("=" * 68)
 
-    # ---- 数据集先过一遍 ----
+    # ---- 数据集配置：先解析成绝对路径，再交给 ultralytics ----
+    data_path = prepare_data_config(args.data)
+    print(f"[data] resolved yaml = {data_path}")
+
     from ultralytics.data.utils import check_det_dataset
 
     try:
-        info = check_det_dataset(args.data)
-        print(f"[data] train = {info['train']}")
-        print(f"[data] val   = {info.get('val')}")
-        print(f"[data] names = {info['names']}")
+        info = check_det_dataset(str(data_path))
     except Exception as exc:  # noqa: BLE001
         raise SystemExit(
             f"数据集校验失败：{exc}\n"
-            f"排查顺序：1) configs/*.yaml 里 path 写的是相对 yaml 的路径 "
-            f"2) images/labels 目录是否存在 3) labels 是否为 YOLO txt 格式"
+            f"排查顺序：1) configs/*.yaml 的 path 指向的目录是否存在 "
+            f"2) images/labels 子目录是否存在 3) 标签是否为 YOLO txt 格式"
         ) from exc
 
+    print(f"[data] train = {info['train']}")
+    print(f"[data] val   = {info.get('val')}")
+    print(f"[data] names = {info['names']}")
+
     if args.dry_run:
+        print(f"[dry-run] train {count_images(info['train'])} 张 / "
+              f"val {count_images(info.get('val'))} 张")
         print("[dry-run] 数据集没问题，退出（未训练）")
         return
 
@@ -162,7 +228,7 @@ def main() -> None:
 
     model = YOLO(model_path)
     model.train(
-        data=args.data,
+        data=str(data_path),
         epochs=args.epochs,
         imgsz=args.imgsz,
         batch=args.batch,

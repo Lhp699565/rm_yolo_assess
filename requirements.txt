@@ -1,16 +1,14 @@
 # 环境说明：本项目在 Windows + RTX 50 系（Blackwell）上验证
 # RTX 50 系必须用 cu128 及以上的 torch，cu118 会报 "no kernel image is available"
 #
-# 安装顺序（重要：torch 先装，否则 ultralytics 会从 PyPI 拉 CPU 版）：
-#   pip install torch==2.9.1+cu128 torchvision==0.24.1+cu128 \
-#       -f https://mirrors.aliyun.com/pytorch-wheels/cu128/ \
+# 注意：torch / torchvision 故意不写在本文件里。它们是 CUDA 版本的载体，
+# 必须先按 README 3.1 单独装（否则 ultralytics 会顺手拉一个 CPU 版），再装本文件：
+#
+#   pip install torch torchvision -f https://mirror.sjtu.edu.cn/pytorch-wheels/cu128/ \
 #       -i https://pypi.tuna.tsinghua.edu.cn/simple
 #   pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 #
-# 无独显（纯 CPU）机器：直接 pip install -r requirements.txt，然后训练时 --device cpu
-
-torch==2.9.1+cu128; sys_platform == "win32"
-torchvision==0.24.1+cu128; sys_platform == "win32"
+# 纯 CPU 机器：直接 pip install torch torchvision -i 清华源，然后训练加 --device cpu
 
 ultralytics>=8.3.0
 opencv-python>=4.9.0

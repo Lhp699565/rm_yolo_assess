@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -43,8 +44,14 @@ def main() -> None:
     name = args.name or f"val_{datetime.now():%Y%m%d_%H%M%S}"
     model = YOLO(args.weights)
 
+    # 和 train.py 用同一套路径解析，避免换个目录执行就找不到数据集
+    sys.path.insert(0, str(ROOT))
+    from train import prepare_data_config
+
+    data_path = prepare_data_config(args.data)
+
     m = model.val(
-        data=args.data,
+        data=str(data_path),
         split=args.split,
         imgsz=args.imgsz,
         batch=args.batch,

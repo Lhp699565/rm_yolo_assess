@@ -2,13 +2,16 @@
 # 自定义类别数据集配置（考核核心：检测 YOLO 80 类之外的物体）
 #
 # !!! 路径坑 !!!
-# ultralytics 解析相对 path 时，基准是「本 yaml 文件所在目录」，
-# 不是仓库根目录、也不是运行时 cwd。
-# 本文件在 configs/ 下，所以写 ../datasets/armor 才对。
-# 写成 datasets/armor 会去找 configs/datasets/armor 然后报 Dataset not found。
+# ultralytics 解析相对 path 时，基准是【运行时的工作目录】，不是 yaml 所在目录。
+# 所以在 configs/ 里写 datasets/armor，你在仓库根目录训练没问题，
+# 换个目录执行就会找不到数据集。
+#
+# 本项目的 train.py / val.py 会把这里的相对路径按【仓库根目录】解析成绝对路径，
+# 再写一份临时 yaml 交给 ultralytics，所以你在哪执行都行。
+# 只有直接用 yolo 命令行时，才需要在仓库根目录执行。
 # ============================================================
 
-path: ../datasets/armor
+path: datasets/armor
 
 train: images/train
 val: images/val
