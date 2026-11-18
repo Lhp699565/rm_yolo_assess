@@ -102,6 +102,8 @@ def main() -> None:
     ap.add_argument("--dest", default=str(DEFAULT_DEST), help="下载到哪个目录")
     ap.add_argument("--full", action="store_true",
                     help="连 overlays/panel_masks/preview 等附加目录一起下（体积翻倍）")
+    ap.add_argument("--workers", type=int, default=32,
+                    help="并发下载数，默认 32（太小会慢，太大容易触发限流）")
     ap.add_argument("--dry-run", action="store_true", help="只打印计划")
     args = ap.parse_args()
 
@@ -151,11 +153,13 @@ def main() -> None:
     cmd = [py, "-m", "modelscope.cli.cli", "download", DATASET_ID,
            "--repo-type", "dataset",
            "--cache-dir", str(cache),
-           "--local-dir", str(dest)]
+           "--local-dir", str(dest),
+           "--max-workers", str(args.workers)]
     if not args.full:
         cmd += ["--include", *need]
         print("  只下载 images / labels / 划分文件（跳过可视化附加目录，省一半空间）")
-        print(f"  缓存目录: {cache}\n")
+        print(f"  缓存目录: {cache}")
+        print(f"  并发数  : {args.workers}\n")
 
     code = run(cmd)
     if code != 0:
