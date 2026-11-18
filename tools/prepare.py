@@ -54,8 +54,19 @@ def cmd_split(args: argparse.Namespace) -> int:
     pairs, missing = [], []
     for img in images:
         rel = img.relative_to(img_root)
-        cand = [lbl_root / rel.with_suffix(".txt"), img.with_suffix(".txt")]
-        lbl = next((c for c in cand if c.exists()), None)
+        cands = [
+            lbl_root / rel.with_suffix(".txt"),   # raw/images/a.jpg -> raw/labels/a.txt
+            img.with_suffix(".txt"),              # 同目录 a.jpg + a.txt
+        ]
+        # Roboflow / 已分好 split 的导出：train/images/a.jpg -> train/labels/a.txt
+        parts = list(rel.parts)
+        for tag in ("images", "image", "imgs"):
+            if tag in parts:
+                idx = parts.index(tag)
+                swapped = Path(*parts[:idx], "labels", *parts[idx + 1:]).with_suffix(".txt")
+                cands.append(lbl_root / swapped)
+                break
+        lbl = next((c for c in cands if c.exists()), None)
         if lbl is None:
             missing.append(img.name)
         else:

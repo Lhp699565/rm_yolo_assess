@@ -144,6 +144,25 @@ python detect.py --weights weights/best.pt --source test.jpg --no-show
 4. **torch 版本要对齐**——两台机器写同一个版本号，不然权重加载报 key 不匹配；
 5. **显存不够时**——A 机 `--batch` 从 16 降到 8 或 4，B 机纯 CPU 就别训练了，只推理。
 
+### 3.5 电脑上没有 Python？用自带的启动器
+
+如果你系统里敲 `python` 提示"不是内部或外部命令"，**不用去装 Python**。
+项目里有两个 `.cmd`，直接调用 `.venv` 里的解释器：
+
+| 文件 | 作用 |
+|---|---|
+| `shell.cmd` | 打开一个已经配好环境的命令行窗口，进去后 `python` / `pip` 直接能用 |
+| `run.cmd` | 单次执行：`run.cmd train.py --epochs 100 --device 0` |
+
+双击 `shell.cmd` 就能开始干活。等价于每次手敲：
+
+```cmd
+.venv\Scripts\python.exe train.py --epochs 100 --imgsz 640 --batch 16 --device 0
+```
+
+> 注意：`.venv` 是绑在这台机器上的，**不能复制到别的电脑用**（里面记着解释器绝对路径）。
+> 换机器要按 3.1 / 3.3 重新建环境。
+
 ---
 
 ## 4. 数据
