@@ -22,7 +22,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATASET_ID = "P1ne4pp1e/armor-pose-blender-allcls-5k-1109"
-DEFAULT_DEST = Path(r"D:\rm_datasets\armor-pose")
+
+# 默认下载到用户目录下的 rm_datasets，这个位置一定有写权限。
+# 想放 D 盘就双击时加参数：--dest D:\rm_datasets\armor-pose
+DEFAULT_DEST = Path.home() / "rm_datasets" / "armor-pose"
+
 OUT_DIR = "datasets/armor"
 RENAME = "2=armor_2,3=armor_3,4=armor_4"
 
@@ -180,6 +184,11 @@ def main() -> None:
     print('    git add -A')
     print('    git commit -m "feat(data): 导入 5000 张 RM26 装甲板数据集，6 类"')
     print('    git tag -a v0.3-dataset -m "数据集 v1"')
+    print()
+    print(f"  磁盘提醒：训练只用 {ROOT / OUT_DIR} 里的副本，")
+    print(f"  确认训练正常后，可以删掉下面两个目录回收约 {14} GB：")
+    print(f"    {dest}")
+    print(f"    {dest.parent / '.modelscope-cache'}")
     print()
 
 
