@@ -95,6 +95,8 @@ def ensure_writable_dir(dest: Path) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description="一键下载并导入 RM 装甲板数据集")
     ap.add_argument("--dest", default=str(DEFAULT_DEST), help="下载到哪个目录")
+    ap.add_argument("--full", action="store_true",
+                    help="连 overlays/panel_masks/preview 等附加目录一起下（体积翻倍）")
     ap.add_argument("--dry-run", action="store_true", help="只打印计划")
     args = ap.parse_args()
 
@@ -136,8 +138,21 @@ def main() -> None:
 
     # ---------- 1. 下载 ----------
     hr("1/3  下载数据集（可中断，重跑会续传）")
-    code = run([py, "-m", "modelscope.cli.cli", "download", DATASET_ID,
-                "--repo-type", "dataset", "--local-dir", str(dest)])
+
+    # 只取训练真正需要的东西，跳过 overlays/panel_masks/preview 这些可视化附加目录
+    # --full 时才全部下载
+    need = ["images/*", "labels/*", "train.txt", "val.txt", "dataset.yaml"]
+    cache = dest.parent / ".modelscope-cache"
+    cmd = [py, "-m", "modelscope.cli.cli", "download", DATASET_ID,
+           "--repo-type", "dataset",
+           "--cache-dir", str(cache),
+           "--local-dir", str(dest)]
+    if not args.full:
+        cmd += ["--include", *need]
+        print("  只下载 images / labels / 划分文件（跳过可视化附加目录，省一半空间）")
+        print(f"  缓存目录: {cache}\n")
+
+    code = run(cmd)
     if code != 0:
         print(f"\n[error] 下载失败（退出码 {code}）")
         print("  常见原因：网络中断、D 盘满了、镜像超时")
