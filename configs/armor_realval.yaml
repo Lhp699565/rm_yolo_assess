@@ -1,0 +1,12 @@
+# 只在真实场景验证集(30 张)上评估，用于对比域适配前后的效果
+path: C:/Users/Lenovo/Documents/deepseek-harness/default-workspace/rm_yolo_assess/datasets/armor_v2
+train: images/real_val
+val: images/real_val
+nc: 6
+names:
+  0: armor_2
+  1: armor_3
+  2: armor_4
+  3: sentry
+  4: outpost
+  5: base

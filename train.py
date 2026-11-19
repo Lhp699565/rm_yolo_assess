@@ -125,7 +125,14 @@ def prepare_data_config(data_arg: str) -> Path:
 
 
 def count_images(folder) -> int:
+    """统计图片数量。混合数据集时 ultralytics 会返回目录列表，这里一并支持。"""
+    if folder is None:
+        return 0
+    if isinstance(folder, (list, tuple)):
+        return sum(count_images(f) for f in folder)
     p = Path(folder)
+    if p.is_file():
+        return 1
     if not p.exists():
         return 0
     return sum(1 for f in p.rglob("*") if f.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp", ".webp"})
@@ -171,6 +178,10 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--patience", type=int, default=30, help="mAP 多久不涨就早停")
     ap.add_argument("--freeze", type=int, default=0, help="冻结前 N 层（小数据集可设 10）")
+    ap.add_argument("--lr0", type=float, default=None,
+                    help="初始学习率。微调已有模型时建议调小（如 0.0005），不填用框架默认")
+    ap.add_argument("--optimizer", default="auto",
+                    help="auto | SGD | Adam | AdamW。微调建议 AdamW")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--name", default=None)
     ap.add_argument("--resume", action="store_true")
@@ -236,6 +247,8 @@ def main() -> None:
         workers=args.workers,
         patience=args.patience,
         freeze=args.freeze,
+        optimizer=args.optimizer,
+        **({"lr0": args.lr0} if args.lr0 else {}),
         seed=args.seed,
         deterministic=True,
         project=str(project),

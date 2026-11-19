@@ -1,0 +1,19 @@
+# 混合域数据集：渲染图（4000+500） + 真实场景帧（80 训 / 30 验）
+# 由 tools/build_mixed_dataset.py 生成
+path: C:/Users/Lenovo/Documents/deepseek-harness/default-workspace/rm_yolo_assess/datasets/armor_v2
+train:
+  - C:/Users/Lenovo/Documents/deepseek-harness/default-workspace/rm_yolo_assess/datasets/armor/images/train
+  - images/real_train
+val:
+  - C:/Users/Lenovo/Documents/deepseek-harness/default-workspace/rm_yolo_assess/datasets/armor/images/val
+  - images/real_val
+test:
+  - C:/Users/Lenovo/Documents/deepseek-harness/default-workspace/rm_yolo_assess/datasets/armor/images/test
+nc: 6
+names:
+  0: armor_2
+  1: armor_3
+  2: armor_4
+  3: sentry
+  4: outpost
+  5: base
