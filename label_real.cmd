@@ -2,6 +2,9 @@
 rem ============================================================
 rem  Open labelImg to fix the pre-labels of real-scene frames.
 rem  Double-click this file.
+rem
+rem  Runs python in THIS window (no "start"), so if it crashes the
+rem  error stays visible instead of the window flashing and closing.
 rem ============================================================
 setlocal enabledelayedexpansion
 
@@ -33,42 +36,33 @@ if not exist "%IMG%" (
     pause
     exit /b 1
 )
+if not exist "%LBL%\classes.txt" (
+    copy /y "%CLS%" "%LBL%\classes.txt" >nul
+)
 
 echo ============================================================
 echo   Opening labelImg...
 echo ============================================================
 echo.
-echo   IMPORTANT: click the "YOLO" button in the left toolbar
-echo   to switch save format. Otherwise it writes PascalVOC xml.
-echo.
-echo   Shortcuts:
-echo     W          draw a new box
-echo     D / A      next / previous image
-echo     Ctrl + S   save current image
-echo     Del        delete selected box
+echo   IMPORTANT: click the "YOLO" button in the left toolbar.
+echo   Shortcuts: W=draw  D/A=next/prev  Ctrl+S=save  Del=delete
 echo.
 
 if exist "%EXE%" (
-    echo   using: labelImg.exe
-    start "" "%EXE%" "%IMG%" "%CLS%" "%LBL%"
-    goto :done
-)
-if exist "%SCRIPT%" (
-    echo   using: source script
-    start "" "%PY%" "%SCRIPT%" "%IMG%" "%CLS%" "%LBL%"
-    goto :done
+    "%EXE%" "%IMG%" "%CLS%" "%LBL%"
+) else if exist "%SCRIPT%" (
+    "%PY%" "%SCRIPT%" "%IMG%" "%CLS%" "%LBL%"
+) else (
+    echo [error] labelImg not found.
+    pause
+    exit /b 1
 )
 
-echo [error] labelImg not found.
 echo.
-echo   .venv\Scripts\labelImg.exe          -- not found
-echo   .tools\labelImg-src\labelImg.py     -- not found
-echo.
-echo   Ask for help before trying more installs.
+echo ============================================================
+echo   labelImg exited with code %ERRORLEVEL%
+echo ============================================================
+if not "%ERRORLEVEL%"=="0" (
+    echo   If you see a traceback above, copy it and ask for help.
+)
 pause
-exit /b 1
-
-:done
-echo.
-echo   Window launched. This console can be closed.
-timeout /t 4 >nul
