@@ -37,3 +37,7 @@ Thumbs.db
 .idea/
 .vscode/
 *.log
+
+# ---- ultralytics 运行时本地配置 ----
+Ultralytics/
+

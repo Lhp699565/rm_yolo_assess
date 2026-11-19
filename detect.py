@@ -38,7 +38,7 @@ FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="YOLO 推理 / 画框 / 统计")
-    ap.add_argument("--weights", required=True, help="训练好的 best.pt")
+    ap.add_argument("--weights", default=None, help="训练好的 best.pt（--list-cameras 时可省略）")
     ap.add_argument("--source", default="0", help="图片/视频路径，或摄像头序号（0）")
     ap.add_argument("--conf", type=float, default=0.25)
     ap.add_argument("--iou", type=float, default=0.45)
@@ -51,7 +51,52 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--show", action="store_true", help="显示窗口（摄像头默认开启）")
     ap.add_argument("--no-show", action="store_true", help="强制不显示窗口")
     ap.add_argument("--line-width", type=int, default=2)
+    ap.add_argument("--backend", default="any", choices=["any", "msmf", "dshow"],
+                    help="摄像头后端。Windows 上 dshow 找不到设备时换 msmf 试试")
+    ap.add_argument("--list-cameras", action="store_true",
+                    help="只探测有哪些可用摄像头，不做检测")
     return ap.parse_args()
+
+
+BACKENDS = {"any": cv2.CAP_ANY, "msmf": cv2.CAP_MSMF, "dshow": cv2.CAP_DSHOW}
+
+
+def list_cameras() -> None:
+    """把所有后端 × 索引 0~4 都试一遍，打印能用的组合。
+
+    Windows 上同一个摄像头在不同后端下的可用性经常不一样：
+    dshow 枚举不到、msmf 能开，或者反过来。OpenCV 默认只试一个，
+    失败就报 "Camera index out of range"，看着像没有摄像头，其实只是后端不对。
+    """
+    try:
+        cv2.setLogLevel(0)  # 关掉 FFMPEG/dshow 的噪音日志
+    except Exception:  # noqa: BLE001
+        pass
+
+    found = []
+    for backend_name in ("msmf", "dshow", "any"):
+        for idx in range(5):
+            cap = cv2.VideoCapture(idx, BACKENDS[backend_name])
+            try:
+                if cap.isOpened():
+                    ok, frame = cap.read()
+                    if ok and frame is not None:
+                        h, w = frame.shape[:2]
+                        print(f"  [OK] 后端={backend_name:<6} 索引={idx}  {w}x{h}")
+                        found.append((backend_name, idx))
+            finally:
+                cap.release()
+
+    print()
+    if found:
+        backend_name, idx = found[0]
+        print(f"  建议命令：--source {idx} --backend {backend_name}")
+    else:
+        print("  没找到任何可用摄像头。可选方案：")
+        print("    1) 手机装 Iriun Webcam / DroidCam，把手机当电脑摄像头（零成本，最快）")
+        print("    2) 用手机录一段视频传到电脑，改成 --source 视频路径.mp4")
+        print("    3) 检查：设置 → 蓝牙和其他设备 → 摄像头；设备管理器 → 照相机")
+        print("    4) 笔记本有些型号有物理摄像头开关/遮挡片，确认已打开")
 
 
 # ----------------------------------------------------------------------------- 推理
@@ -118,6 +163,15 @@ def draw_hud(frame: np.ndarray, lines: list[str]) -> np.ndarray:
 
 def main() -> None:
     args = parse_args()
+
+    if args.list_cameras:
+        print("正在探测摄像头（每个后端试 0~4 号索引）...\n")
+        list_cameras()
+        return
+
+    if not args.weights:
+        raise SystemExit("缺少 --weights，例如：\n"
+                         "  python detect.py --weights runs/train/v030_baseline/weights/best.pt --source 0")
 
     import torch
     from ultralytics import YOLO
@@ -193,11 +247,15 @@ def main() -> None:
 
         # ---------------- 视频 / 摄像头 ----------------
         else:
-            cap = cv2.VideoCapture(int(src) if is_cam else str(src))
+            if is_cam:
+                cap = cv2.VideoCapture(int(src), BACKENDS[args.backend])
+            else:
+                cap = cv2.VideoCapture(str(src))
             if not cap.isOpened():
                 raise SystemExit(
                     f"打不开视频源：{src}\n"
-                    f"摄像头被占用时先关掉别的程序；文件路径含中文时先重命名成英文。"
+                    f"  摄像头：先跑 --list-cameras 看有没有可用设备，再试 --backend msmf\n"
+                    f"  视频文件：确认路径是英文且文件存在"
                 )
 
             src_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
