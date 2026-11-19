@@ -1,10 +1,9 @@
 @echo off
 rem ============================================================
-rem  Open labelImg to fix the pre-labels of real-scene frames.
-rem  Double-click this file.
+rem  Open labelImg with ALL output redirected to a log file,
+rem  so a crash can be diagnosed even if the window closes.
 rem
-rem  Runs python in THIS window (no "start"), so if it crashes the
-rem  error stays visible instead of the window flashing and closing.
+rem  Log: .tmp\labelimg.log
 rem ============================================================
 setlocal enabledelayedexpansion
 
@@ -25,44 +24,35 @@ if not defined ROOT (
 )
 
 set "PY=%ROOT%.venv\Scripts\python.exe"
-set "EXE=%ROOT%.venv\Scripts\labelImg.exe"
 set "SCRIPT=%ROOT%.tools\labelImg-src\labelImg.py"
 set "IMG=%ROOT%raw\real\images"
 set "CLS=%ROOT%raw\real\classes.txt"
 set "LBL=%ROOT%raw\real\labels"
+set "LOG=%ROOT%.tmp\labelimg.log"
 
-if not exist "%IMG%" (
-    echo [error] Image folder not found: %IMG%
-    pause
-    exit /b 1
-)
-if not exist "%LBL%\classes.txt" (
-    copy /y "%CLS%" "%LBL%\classes.txt" >nul
-)
+if not exist "%ROOT%.tmp" mkdir "%ROOT%.tmp"
+if not exist "%LBL%\classes.txt" copy /y "%CLS%" "%LBL%\classes.txt" >nul
 
 echo ============================================================
-echo   Opening labelImg...
+echo   labelImg  -  log file enabled
 echo ============================================================
 echo.
-echo   IMPORTANT: click the "YOLO" button in the left toolbar.
-echo   Shortcuts: W=draw  D/A=next/prev  Ctrl+S=save  Del=delete
+echo   Log: %LOG%
+echo.
+echo   Steps:
+echo     1. Draw one box with the "Create RectBox" toolbar button
+echo     2. If it crashes, come back and tell me
+echo     3. Press any key here to close this window
 echo.
 
-if exist "%EXE%" (
-    "%EXE%" "%IMG%" "%CLS%" "%LBL%"
-) else if exist "%SCRIPT%" (
-    "%PY%" "%SCRIPT%" "%IMG%" "%CLS%" "%LBL%"
-) else (
-    echo [error] labelImg not found.
-    pause
-    exit /b 1
-)
+echo ==== run at %DATE% %TIME% ==== >> "%LOG%"
+rem 每次启动前确保 PyQt5 兼容补丁已打上（幂等，重复跑无副作用）
+"%PY%" "%ROOT%tools\patch_labelimg.py" >> "%LOG%" 2>&1
+"%PY%" "%SCRIPT%" "%IMG%" "%CLS%" "%LBL%" >> "%LOG%" 2>&1
 
 echo.
 echo ============================================================
-echo   labelImg exited with code %ERRORLEVEL%
+echo   labelImg exited. Log written to:
+echo   %LOG%
 echo ============================================================
-if not "%ERRORLEVEL%"=="0" (
-    echo   If you see a traceback above, copy it and ask for help.
-)
 pause
