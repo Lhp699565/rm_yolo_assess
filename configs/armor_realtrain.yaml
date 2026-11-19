@@ -1,0 +1,12 @@
+# 在真实训练帧(80 张)上评估，用于判断过拟合还是欠拟合
+path: C:/Users/Lenovo/Documents/deepseek-harness/default-workspace/rm_yolo_assess/datasets/armor_v2
+train: images/real_train
+val: images/real_train
+nc: 6
+names:
+  0: armor_2
+  1: armor_3
+  2: armor_4
+  3: sentry
+  4: outpost
+  5: base
