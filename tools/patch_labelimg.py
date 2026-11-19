@@ -49,6 +49,24 @@ PATCHES = [
         "                    painter.drawText(min_x, min_y, self.label)",
         "                    painter.drawText(int(min_x), int(min_y), self.label)",
     ),
+    # 滚轮滚动：units 是 float，QScrollBar.setValue 只接受 int
+    (
+        "labelImg.py",
+        "        bar.setValue(bar.value() + bar.singleStep() * units)",
+        "        bar.setValue(int(bar.value() + bar.singleStep() * units))",
+    ),
+    # 缩放：QSpinBox.setValue 只接受 int
+    (
+        "labelImg.py",
+        "        self.zoom_widget.setValue(value)",
+        "        self.zoom_widget.setValue(int(value))",
+    ),
+    # 缩放时调整滚动条位置，move_x/move_y 是 float
+    (
+        "labelImg.py",
+        "        h_bar.setValue(new_h_bar_value)\n        v_bar.setValue(new_v_bar_value)",
+        "        h_bar.setValue(int(new_h_bar_value))\n        v_bar.setValue(int(new_v_bar_value))",
+    ),
 ]
 
 
