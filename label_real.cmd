@@ -27,9 +27,9 @@ if not defined ROOT (
 set "PY=%ROOT%.venv\Scripts\python.exe"
 set "SCRIPT=%ROOT%.tools\labelImg-src\labelImg.py"
 set "PATCH=%ROOT%tools\patch_labelimg.py"
-set "IMG=%ROOT%raw\real\images"
-set "CLS=%ROOT%raw\real\classes.txt"
-set "LBL=%ROOT%raw\real\labels"
+set "IMG=%ROOT%raw\real_small\images"
+set "CLS=%ROOT%raw\real_small\classes.txt"
+set "LBL=%ROOT%raw\real_small\labels"
 set "LOG=%ROOT%.tmp\labelimg.log"
 
 if not exist "%ROOT%.tmp" mkdir "%ROOT%.tmp"
