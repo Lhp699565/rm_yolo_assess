@@ -41,3 +41,7 @@ Thumbs.db
 # ---- ultralytics 运行时本地配置 ----
 Ultralytics/
 
+
+# ---- 本地依赖缓存（labelImg 源码等）----
+.tools/
+
